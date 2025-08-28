@@ -1,4 +1,5 @@
 import WidgetCard from '../components/WidgetCard'
+import GitWidget from '../components/GitWidget'
 import ThemeSelector from '../components/ThemeSelector'
 import { useTheme } from '../hooks/useTheme'
 
@@ -20,6 +21,11 @@ const Dashboard = () => {
       </header>
 
       <main className="dashboard-grid">
+        <GitWidget 
+          username="austin-jarrett-dev"
+          repositories={['.', '../other-project']}
+        />
+        
         <WidgetCard 
           title="Welcome"
           content="This is your personal dashboard. Add widgets and tools to customize your workspace."
