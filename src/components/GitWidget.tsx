@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTheme } from '../hooks/useTheme'
 import { GitService, RepoInfo } from '../services/gitService'
 import { GitHubService, GitHubRepo, GitHubStats } from '../services/githubService'
+import RepoDetailModal from './RepoDetailModal'
 
 interface GitWidgetProps {
   username?: string
@@ -16,6 +17,8 @@ const GitWidget = ({ username, githubToken, repositories = ['.'] }: GitWidgetPro
   const [githubStats, setGithubStats] = useState<GitHubStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'local' | 'github'>('local')
+  const [selectedRepo, setSelectedRepo] = useState<GitHubRepo | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const gitService = new GitService()
   const githubService = new GitHubService(githubToken)
@@ -66,6 +69,16 @@ const GitWidget = ({ username, githubToken, repositories = ['.'] }: GitWidgetPro
       month: 'short',
       day: 'numeric'
     })
+  }
+
+  const handleRepoClick = (repo: GitHubRepo) => {
+    setSelectedRepo(repo)
+    setIsModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedRepo(null)
   }
 
   if (loading) {
@@ -196,7 +209,11 @@ const GitWidget = ({ username, githubToken, repositories = ['.'] }: GitWidgetPro
           {/* Recent Repos */}
           <div className="space-y-2">
             {githubRepos.slice(0, 3).map((repo) => (
-              <div key={repo.id} className="flex items-center justify-between p-3 rounded-lg bg-black/20 border border-white/5">
+              <div 
+                key={repo.id} 
+                className="flex items-center justify-between p-3 rounded-lg bg-black/20 border border-white/5 hover:bg-black/30 cursor-pointer transition-colors"
+                onClick={() => handleRepoClick(repo)}
+              >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className={`text-sm ${repo.private ? 'text-orange-400' : 'text-green-400'}`}>
                     {repo.private ? '🔒' : '📁'}
@@ -212,6 +229,9 @@ const GitWidget = ({ username, githubToken, repositories = ['.'] }: GitWidgetPro
                     </div>
                   </div>
                 </div>
+                <div className={`text-xs ${currentTheme.textMuted}`}>
+                  Click for details →
+                </div>
               </div>
             ))}
           </div>
@@ -225,6 +245,16 @@ const GitWidget = ({ username, githubToken, repositories = ['.'] }: GitWidgetPro
       >
         Refresh
       </button>
+
+      {/* Repository Detail Modal */}
+      {selectedRepo && (
+        <RepoDetailModal
+          repo={selectedRepo}
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          githubService={githubService}
+        />
+      )}
     </div>
   )
 }

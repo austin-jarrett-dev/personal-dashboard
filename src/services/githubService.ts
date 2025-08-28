@@ -42,6 +42,42 @@ export interface GitHubIssue {
   }>
 }
 
+export interface GitHubCommit {
+  sha: string
+  commit: {
+    author: {
+      name: string
+      email: string
+      date: string
+    }
+    message: string
+  }
+  author: {
+    login: string
+    avatar_url: string
+  } | null
+  html_url: string
+}
+
+export interface GitHubActivity {
+  pullRequests: {
+    open: number
+    closed: number
+    merged: number
+    recent: GitHubPullRequest[]
+  }
+  issues: {
+    open: number
+    closed: number
+    recent: GitHubIssue[]
+  }
+  commits: {
+    total: number
+    recent: GitHubCommit[]
+    weeklyActivity: number[]
+  }
+}
+
 export interface GitHubStats {
   totalRepos: number
   totalStars: number
@@ -135,6 +171,78 @@ export class GitHubService {
         publicRepos: 0,
         privateRepos: 0
       }
+    }
+  }
+
+  async getRepositoryActivity(owner: string, repo: string): Promise<GitHubActivity> {
+    try {
+      const [openPRs, closedPRs, openIssues, closedIssues, recentCommits, weeklyStats] = await Promise.all([
+        this.getRepoPullRequests(owner, repo, 'open'),
+        this.getRepoPullRequests(owner, repo, 'closed'),
+        this.getRepoIssues(owner, repo, 'open'),
+        this.getRepoIssues(owner, repo, 'closed'),
+        this.getRepoCommits(owner, repo),
+        this.getRepoWeeklyStats(owner, repo)
+      ])
+
+      return {
+        pullRequests: {
+          open: openPRs.length,
+          closed: closedPRs.filter(pr => !pr.state.includes('merged')).length,
+          merged: closedPRs.filter(pr => pr.state.includes('merged')).length,
+          recent: [...openPRs.slice(0, 3), ...closedPRs.slice(0, 2)]
+        },
+        issues: {
+          open: openIssues.length,
+          closed: closedIssues.length,
+          recent: [...openIssues.slice(0, 3), ...closedIssues.slice(0, 2)]
+        },
+        commits: {
+          total: recentCommits.length,
+          recent: recentCommits.slice(0, 5),
+          weeklyActivity: weeklyStats
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching repository activity:', error)
+      return {
+        pullRequests: { open: 0, closed: 0, merged: 0, recent: [] },
+        issues: { open: 0, closed: 0, recent: [] },
+        commits: { total: 0, recent: [], weeklyActivity: [] }
+      }
+    }
+  }
+
+  async getRepoCommits(owner: string, repo: string, limit: number = 20): Promise<GitHubCommit[]> {
+    try {
+      const commits = await this.fetch(`/repos/${owner}/${repo}/commits?per_page=${limit}`)
+      return commits
+    } catch (error) {
+      console.error('Error fetching commits:', error)
+      return []
+    }
+  }
+
+  async getRepoWeeklyStats(owner: string, repo: string): Promise<number[]> {
+    try {
+      const stats = await this.fetch(`/repos/${owner}/${repo}/stats/commit_activity`)
+      if (!stats || !Array.isArray(stats)) return []
+      
+      // Return last 4 weeks of commit activity
+      return stats.slice(-4).map((week: any) => week.total || 0)
+    } catch (error) {
+      console.error('Error fetching weekly stats:', error)
+      return []
+    }
+  }
+
+  async getRepoContributors(owner: string, repo: string): Promise<any[]> {
+    try {
+      const contributors = await this.fetch(`/repos/${owner}/${repo}/contributors?per_page=10`)
+      return contributors || []
+    } catch (error) {
+      console.error('Error fetching contributors:', error)
+      return []
     }
   }
 }

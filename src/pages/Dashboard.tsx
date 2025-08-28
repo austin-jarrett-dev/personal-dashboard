@@ -7,17 +7,19 @@ const Dashboard = () => {
   const { currentTheme } = useTheme()
   
   return (
-    <div className="container mx-auto px-6 py-8">
-      <header className="mb-8 flex justify-between items-start">
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <header className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className={`text-4xl font-bold ${currentTheme.text} mb-2`}>
+          <h1 className={`text-3xl sm:text-4xl font-bold ${currentTheme.text} mb-2`}>
             Personal Dashboard
           </h1>
-          <p className={currentTheme.textMuted}>
+          <p className={`${currentTheme.textMuted} text-sm sm:text-base`}>
             Your personalized workspace and development tools
           </p>
         </div>
-        <ThemeSelector />
+        <div className="self-end sm:self-start">
+          <ThemeSelector />
+        </div>
       </header>
 
       <main className="dashboard-grid">
